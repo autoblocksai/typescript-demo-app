@@ -19,7 +19,7 @@
   "author": "Adam Nolte",
   "license": "MIT",
   "dependencies": {
-    "@autoblocks/client": "^0.0.99",
+    "@autoblocks/client": "^0.0.100",
     "@traceloop/instrumentation-openai": "^0.13.0",
     "dotenv-cli": "^7.4.4",
     "openai": "^4.0.0",
