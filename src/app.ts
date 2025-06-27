@@ -2,12 +2,11 @@ import './instrumentation';
 import OpenAI from 'openai';
 import { Output, DoctorIntent } from './models';
 import {
-  doctorIntentClassifierPrompt,
-  clinicalAnswererPrompt,
-  soapGeneratorPrompt,
-  patientHistorySummarizerPrompt,
-  visitSummaryWriterPrompt,
-  createOpenAIParams,
+  doctorIntentClassifierPromptManager,
+  clinicalAnswererPromptManager,
+  soapGeneratorPromptManager,
+  patientHistorySummarizerPromptManager,
+  visitSummaryWriterPromptManager,
 } from './prompts';
 import { traceApp } from '@autoblocks/client';
 
@@ -17,9 +16,30 @@ const openai = new OpenAI({
 });
 
 export async function classifyIntent(question: string): Promise<DoctorIntent> {
-  const params = createOpenAIParams(doctorIntentClassifierPrompt, {
-    doctor_message: question,
-  });
+  return await doctorIntentClassifierPromptManager.exec( async ({prompt}) => {
+
+
+  const params = {
+    model: prompt.params.model,
+    messages: [
+      {
+        role: 'system' as const,
+        content: prompt.renderTemplate({
+          template: 'system',
+          params: {}
+        })
+      },
+      {
+        role: 'user' as const,
+        content: prompt.renderTemplate({
+          template: 'user',
+          params: {
+            doctor_message: question,
+          }
+        })
+      },
+    ],
+  }
 
   const response = await openai.chat.completions.create(params);
   const content =
@@ -33,51 +53,139 @@ export async function classifyIntent(question: string): Promise<DoctorIntent> {
 
   // Default fallback
   return 'clinical';
+  });
 }
 
 export async function executeClinicalAnswerer(
   question: string
 ): Promise<string> {
-  const params = createOpenAIParams(clinicalAnswererPrompt, {
-    doctor_message: question,
-  });
+  return await clinicalAnswererPromptManager.exec(async ({prompt}) => {
+    const params = {
+      model: prompt.params.model,
+      messages: [
+        {
+          role: 'system' as const,
+          content: prompt.renderTemplate({
+            template: 'system',
+            params: {}
+          })
+        },
+        {
+          role: 'user' as const,
+          content: prompt.renderTemplate({
+            template: 'user',
+            params: {
+              doctor_message: question,
+            }
+          })
+        },
+      ],
+    };
 
-  const response = await openai.chat.completions.create(params);
-  return response.choices[0]?.message?.content || '';
+    const response = await openai.chat.completions.create(params);
+    return response.choices[0]?.message?.content || '';
+  });
 }
 
 export async function executeSoapGenerator(question: string): Promise<string> {
-  const params = createOpenAIParams(soapGeneratorPrompt, {
-    transcript: question,
-  });
+  return await soapGeneratorPromptManager.exec(async ({prompt}) => {
+    const params = {
+      model: prompt.params.model,
+      messages: [
+        {
+          role: 'system' as const,
+          content: prompt.renderTemplate({
+            template: 'system',
+            params: {}
+          })
+        },
+        {
+          role: 'user' as const,
+          content: prompt.renderTemplate({
+            template: 'user',
+            params: {
+              transcript: question,
+            }
+          })
+        },
+      ],
+    };
 
-  const response = await openai.chat.completions.create(params);
-  return response.choices[0]?.message?.content || '';
+    const response = await openai.chat.completions.create(params);
+    return response.choices[0]?.message?.content || '';
+  });
 }
 
 export async function executePatientHistorySummarizer(
   transcript: string
 ): Promise<string> {
-  const params = createOpenAIParams(patientHistorySummarizerPrompt, {
-    transcript_or_notes: transcript,
-  });
+  return await patientHistorySummarizerPromptManager.exec(async ({prompt}) => {
+    const params = {
+      model: prompt.params.model,
+      messages: [
+        {
+          role: 'system' as const,
+          content: prompt.renderTemplate({
+            template: 'system',
+            params: {}
+          })
+        },
+        {
+          role: 'user' as const,
+          content: prompt.renderTemplate({
+            template: 'user',
+            params: {
+              transcript_or_notes: transcript,
+            }
+          })
+        },
+      ],
+    };
 
-  const response = await openai.chat.completions.create(params);
-  return response.choices[0]?.message?.content || '';
+    const response = await openai.chat.completions.create(params);
+    return response.choices[0]?.message?.content || '';
+  });
 }
 
 export async function executeVisitSummaryWriter(
   question: string
 ): Promise<string> {
-  const params = createOpenAIParams(visitSummaryWriterPrompt, {
-    transcript_or_notes: question,
-  });
+  return await visitSummaryWriterPromptManager.exec(async ({prompt}) => {
+    const params = {
+      model: prompt.params.model,
+      messages: [
+        {
+          role: 'system' as const,
+          content: prompt.renderTemplate({
+            template: 'system',
+            params: {}
+          })
+        },
+        {
+          role: 'user' as const,
+          content: prompt.renderTemplate({
+            template: 'user',
+            params: {
+              transcript_or_notes: question,
+            }
+          })
+        },
+      ],
+    };
 
-  const response = await openai.chat.completions.create(params);
-  return response.choices[0]?.message?.content || '';
+    const response = await openai.chat.completions.create(params);
+    return response.choices[0]?.message?.content || '';
+  });
 }
 
 export async function run(question: string): Promise<Output> {
+  await Promise.all([
+    doctorIntentClassifierPromptManager.init(),
+    clinicalAnswererPromptManager.init(),
+    soapGeneratorPromptManager.init(),
+    patientHistorySummarizerPromptManager.init(),
+    visitSummaryWriterPromptManager.init(),
+  ]);
   return await traceApp('doctor-gpt', 'production', async () => {
     try {
       // First determine which prompt to use
@@ -110,6 +218,12 @@ export async function run(question: string): Promise<Output> {
         answer:
           'I encountered an error processing your request. Please try again.',
       };
+    } finally {
+      doctorIntentClassifierPromptManager.close();
+      clinicalAnswererPromptManager.close();
+      soapGeneratorPromptManager.close();
+      patientHistorySummarizerPromptManager.close();
+      visitSummaryWriterPromptManager.close();
     }
   });
 }

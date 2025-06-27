@@ -1,7 +1,8 @@
 import { run } from '../src/app';
-import { AutoblocksAppClient } from '@autoblocks/client';
-import { getSelectedDatasets } from '@autoblocks/client';
-import { TestCase } from '../src/models';
+import { AutoblocksAppClient, getSelectedDatasets } from '@autoblocks/client';
+import { runTestSuite } from '@autoblocks/client/testing/v2';
+import { TestCase, Output } from '../src/models';
+import { AnswerAccuracy, HasExpectedContent } from './evaluators';
 
 const client = new AutoblocksAppClient({
   appSlug: 'doctor-gpt',
@@ -30,10 +31,14 @@ async function runTests() {
     }
   }
 
-  for (const testCase of testCases) {
-    const result = await run(testCase.question);
-    console.log(result);
-  }
+  runTestSuite<TestCase, Output>({
+    id: 'doctor-gpt-test-suite',
+    appSlug: 'doctor-gpt',
+    testCases,
+    testCaseHash: ['question'],
+    fn: ({ testCase }) => run(testCase.question),
+    evaluators: [new HasExpectedContent(), new AnswerAccuracy()],
+  });
 }
 
 runTests();

@@ -22,16 +22,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup python
-        uses: actions/setup-python@v5
+      - name: Setup node
+        uses: actions/setup-node@v4
         with:
-          python-version-file: '.python-version'
-
-      - name: Install poetry
-        run: curl -sSL https://install.python-poetry.org | python3 -
+          node-version: '22'
+          registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
-        run: poetry install
+        run: npm install
+
+      - name: Generate prompts
+        run: npm run gen
+        env:
+          AUTOBLOCKS_V2_API_KEY: ${{ secrets.AUTOBLOCKS_V2_API_KEY }}
 
       - name: Create CI Metadata
         run: npx autoblocks testing setup-ci-context
@@ -40,7 +43,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run tests
-        run: poetry run run_tests
+        run: npm run test
         env:
           AUTOBLOCKS_V2_API_KEY: ${{ secrets.AUTOBLOCKS_V2_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

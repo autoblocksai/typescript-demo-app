@@ -7,7 +7,8 @@
     "test": "dotenv -e .env -- tsx tests/test.ts",
     "create-dataset": "dotenv -e .env -- tsx scripts/create-dataset.ts",
     "create-prompts": "dotenv -e .env -- tsx scripts/create-prompts.ts",
-    "lint": "eslint src/**/*.ts tests/**/*.ts scripts/**/*.ts"
+    "lint": "eslint src/**/*.ts tests/**/*.ts scripts/**/*.ts",
+    "gen": "dotenv -e .env -- prompts generate-v2"
   },
   "keywords": [
     "autoblocks",
